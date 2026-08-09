@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warp-O-Texture — Web</title>
+<style>
+  :root{
+    --bg:#262629;         /* kDarkBg   RGB(38,38,41) */
+    --field:#1c1c1f;      /* kDarkField RGB(28,28,31) */
+    --preview:#17171a;    /* kDarkPreview RGB(23,23,26) */
+    --text:#e0e0e6;       /* kDarkText RGB(224,224,230) */
+    --text-dim:#8d8d97;
+    --border:#3a3a40;
+    --accent:#5b8def;
+    --accent-dim:#3d5c99;
+    --warn:#e0a840;
+    --danger:#e0605a;
+    --ok:#5ec98a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    font-size:13px; display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  button{
+    font-family:inherit; font-size:12.5px; color:var(--text); background:#323238;
+    border:1px solid var(--border); border-radius:5px; padding:6px 11px; cursor:pointer;
+  }
+  button:hover:not(:disabled){ background:#3c3c44; border-color:#4a4a52; }
+  button:active:not(:disabled){ background:#2c2c32; }
+  button:disabled{ opacity:.4; cursor:default; }
+  button.primary{ background:var(--accent-dim); border-color:var(--accent); }
+  button.primary:hover:not(:disabled){ background:var(--accent); }
+  input[type=text],input[type=number]{
+    background:var(--field); color:var(--text); border:1px solid var(--border);
+    border-radius:4px; padding:5px 7px; font-family:inherit; font-size:12.5px;
+  }
+  label.chk{ display:flex; align-items:center; gap:6px; color:var(--text-dim); cursor:pointer; user-select:none; }
+
+  /* ---- header ---- */
+  header{
+    display:flex; align-items:center; gap:10px; padding:9px 14px;
+    background:#2c2c30; border-bottom:1px solid var(--border); flex:0 0 auto;
+  }
+  header h1{ font-size:14px; font-weight:600; margin:0 10px 0 0; letter-spacing:.2px; white-space:nowrap; }
+  header h1 span{ color:var(--text-dim); font-weight:400; }
+  #fileLabel{ color:var(--text-dim); font-size:12px; margin-left:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px; }
+  .spacer{ flex:1; }
+  #statusLine{ color:var(--text-dim); font-size:12px; margin-right:6px; max-width:360px; text-align:right; }
+  #statusLine.err{ color:var(--danger); }
+  #statusLine.ok{ color:var(--ok); }
+
+  /* ---- layout ---- */
+  #body{ flex:1; display:flex; min-height:0; }
+  #sidebar{
+    width:300px; flex:0 0 auto; border-right:1px solid var(--border);
+    display:flex; flex-direction:column; background:#242427;
+  }
+  #archiveMeta{ padding:9px 12px; font-size:11.5px; color:var(--text-dim); border-bottom:1px solid var(--border); line-height:1.6; }
+  #entryList{ flex:1; overflow-y:auto; }
+  .entry-row{
+    padding:7px 12px; border-bottom:1px solid #2b2b2f; cursor:pointer; font-size:12.5px;
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .entry-row:hover{ background:#2c2c31; }
+  .entry-row.selected{ background:var(--accent-dim); }
+  .entry-row .idx{ color:var(--text-dim); width:42px; flex:0 0 auto; }
+  .entry-row .dims{ flex:1; overflow:hidden; text-overflow:ellipsis; }
+  .badge{ font-size:9.5px; padding:1px 5px; border-radius:3px; flex:0 0 auto; font-weight:600; letter-spacing:.2px; }
+  .badge.ui{ background:#3a4a6b; color:#a8c0f0; }
+  .badge.warn{ background:#5c4523; color:var(--warn); }
+  .badge.mono{ background:#3a3a3a; color:#c8c8c8; }
+
+  #empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-dim); text-align:center; padding:30px; font-size:13px; }
+
+  /* ---- main ---- */
+  #main{ flex:1; display:flex; min-width:0; }
+  #previewPane{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  #previewToolbar{
+    display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  #previewCanvasWrap{
+    flex:1; display:flex; align-items:center; justify-content:center; background:var(--preview);
+    overflow:auto; position:relative; min-height:0;
+  }
+  #previewCanvas{ image-rendering:pixelated; border:1px solid #000; background:repeating-conic-gradient(#222 0% 25%, #1a1a1a 0% 50%) 50% / 16px 16px; }
+  #previewCanvas.bilinear{ image-rendering:auto; }
+  #frameNav{ display:flex; align-items:center; gap:6px; }
+  #frameLabel{ min-width:78px; text-align:center; color:var(--text-dim); font-size:12px; }
+  #viewLabel{ color:var(--text-dim); font-size:11.5px; margin-left:auto; }
+
+  #sidePanel{
+    width:280px; flex:0 0 auto; border-left:1px solid var(--border); background:#242427;
+    overflow-y:auto; padding:14px;
+  }
+  #sidePanel h2{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-dim); margin:0 0 8px; font-weight:600; }
+  #infoBlock{ font-size:12px; line-height:1.75; margin-bottom:18px; white-space:pre-wrap; }
+  #infoBlock .warn-box{ margin-top:8px; padding:8px; background:#3a2c17; border:1px solid #5c4523; border-radius:5px; color:var(--warn); font-size:11.5px; line-height:1.5; }
+  .action-group{ display:flex; flex-direction:column; gap:7px; margin-bottom:18px; }
+  .action-group button{ width:100%; text-align:left; }
+  hr.sep{ border:none; border-top:1px solid var(--border); margin:14px 0; }
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:#414148; border-radius:5px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#4e4e56; }
+
+  a.hidden-link{ display:none; }
+  input[type=file]{ display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Warp&#8209;O&#8209;Texture <span>web</span></h1>
+  <button id="btnOpen">Open Archive&hellip;</button>
+  <span id="fileLabel">No archive loaded</span>
+  <div class="spacer"></div>
+  <span id="statusLine"></span>
+  <button id="btnSave" class="primary" disabled>Save Archive (.tex)</button>
+</header>
+
+<div id="body">
+  <div id="sidebar">
+    <div id="archiveMeta">Open a .tex archive to begin.</div>
+    <div id="entryList"><div id="empty-state">No archive loaded yet.<br><br>Click "Open Archive&hellip;" above and choose a .tex file.</div></div>
+  </div>
+
+  <div id="main">
+    <div id="previewPane">
+      <div id="previewToolbar">
+        <div id="frameNav">
+          <button id="btnPrevFrame" disabled>&larr;</button>
+          <span id="frameLabel">&mdash;</span>
+          <button id="btnNextFrame" disabled>&rarr;</button>
+        </div>
+        <button id="btnRotate" disabled title="Rotate preview 90&deg; clockwise">Rotate 90&deg;</button>
+        <button id="btnFlipH" disabled title="Flip preview horizontally">Flip H</button>
+        <button id="btnFlipV" disabled title="Flip preview vertically">Flip V</button>
+        <button id="btnResetView" disabled title="Reset to this entry's default view">Reset View</button>
+        <label class="chk"><input type="checkbox" id="chkBilinear">Smooth</label>
+        <span id="viewLabel">&nbsp;</span>
+      </div>
+      <div id="previewCanvasWrap">
+        <canvas id="previewCanvas" width="1" height="1"></canvas>
+      </div>
+    </div>
+
+    <div id="sidePanel">
+      <h2>Entry Info</h2>
+      <div id="infoBlock">Select an entry from the list to see its details.</div>
+
+      <div class="action-group">
+        <h2 style="margin-top:0">Actions</h2>
+        <button id="btnImport" disabled>Import Replacement Image&hellip;</button>
+        <button id="btnExport" disabled>Export Frame as PNG</button>
+      </div>
+
+      <hr class="sep">
+      <div style="color:var(--text-dim); font-size:11.5px; line-height:1.6;">
+        Imported images are automatically scaled to match the current frame's
+        resolution, so any source image size works. Only the selected frame
+        is replaced — the archive's byte layout never changes.
+      </div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInputArchive" accept=".tex">
+<input type="file" id="fileInputImage" accept="image/*">
+<a id="downloadLink" class="hidden-link"></a>
+
+<script src="app.js"></script>
+</body>
+</html>
