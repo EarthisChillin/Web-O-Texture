@@ -109,6 +109,44 @@
   ::-webkit-scrollbar-thumb{ background:#414148; border-radius:5px; }
   ::-webkit-scrollbar-thumb:hover{ background:#4e4e56; }
 
+  /* ---- tile picker ---- */
+  #tilePickerOverlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    align-items:center; justify-content:center; z-index:60;
+  }
+  #tilePickerOverlay.show{ display:flex; }
+  #tilePickerBox{
+    background:#221f22; border:1px solid var(--border); border-radius:8px;
+    width:min(920px, 94vw); height:min(680px, 88vh);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  #tilePickerHeader{
+    display:flex; align-items:center; gap:10px; padding:10px 14px;
+    border-bottom:1px solid var(--border); flex:0 0 auto;
+  }
+  #tilePickerHeader h3{ margin:0; font-size:13.5px; font-weight:600; }
+  #tilePickerCount{ color:var(--text-dim); font-size:11.5px; }
+  #tilePickerGrid{
+    flex:1; overflow-y:auto; padding:10px;
+    display:grid; grid-template-columns:repeat(auto-fill, 76px);
+    justify-content:start; align-content:start; gap:0; background:#0f0f11;
+    outline:none;
+  }
+  .tile{
+    width:70px; height:86px; margin:3px; padding:3px; border-radius:4px;
+    display:flex; flex-direction:column; align-items:center; cursor:pointer;
+    background:#1f1f22; box-sizing:border-box;
+  }
+  .tile:hover{ background:#292930; }
+  .tile.highlighted{ background:var(--accent-dim); }
+  .tile canvas{ width:64px; height:64px; background:#17171a; border-radius:2px; image-rendering:pixelated; }
+  .tile canvas.bilinear{ image-rendering:auto; }
+  .thumb-holder{ width:64px; height:64px; background:#17171a; border-radius:2px; flex:0 0 auto; }
+  .tile .tile-label{
+    font-size:10px; font-weight:600; color:#c0c0c8; margin-top:3px; letter-spacing:.2px;
+  }
+  .tile.highlighted .tile-label{ color:#fff; }
+
   a.hidden-link{ display:none; }
   input[type=file]{ display:none; }
 </style>
@@ -118,6 +156,7 @@
 <header>
   <h1>Warp&#8209;O&#8209;Texture <span>web</span></h1>
   <button id="btnOpen">Open Archive&hellip;</button>
+  <button id="btnTilePicker" disabled>Tile Picker&hellip;</button>
   <span id="fileLabel">No archive loaded</span>
   <div class="spacer"></div>
   <span id="statusLine"></span>
@@ -173,6 +212,19 @@
 <input type="file" id="fileInputArchive" accept=".tex">
 <input type="file" id="fileInputImage" accept="image/*">
 <a id="downloadLink" class="hidden-link"></a>
+
+<div id="tilePickerOverlay">
+  <div id="tilePickerBox">
+    <div id="tilePickerHeader">
+      <h3>Tile Picker</h3>
+      <span id="tilePickerCount"></span>
+      <div class="spacer"></div>
+      <span style="color:var(--text-dim); font-size:11px;">Click a tile, or use arrow keys + Enter &middot; Esc to close</span>
+      <button id="btnTilePickerClose">Close</button>
+    </div>
+    <div id="tilePickerGrid" tabindex="0"></div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
