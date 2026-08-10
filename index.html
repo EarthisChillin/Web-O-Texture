@@ -147,6 +147,27 @@
   }
   .tile.highlighted .tile-label{ color:#fff; }
 
+  /* ---- credits ---- */
+  #creditsOverlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    align-items:center; justify-content:center; z-index:60;
+  }
+  #creditsOverlay.show{ display:flex; }
+  #creditsBox{
+    background:#221f22; border:1px solid var(--border); border-radius:8px;
+    width:min(520px, 92vw); max-height:82vh;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  #creditsHeader{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px;
+    border-bottom:1px solid var(--border); flex:0 0 auto;
+  }
+  #creditsHeader h3{ margin:0; font-size:13.5px; font-weight:600; }
+  #creditsBody{
+    overflow-y:auto; padding:18px 20px; font-size:12.5px; line-height:1.65; white-space:pre-wrap;
+  }
+  #creditsBody .credit-name{ color:var(--accent); font-weight:700; }
+
   a.hidden-link{ display:none; }
   input[type=file]{ display:none; }
 </style>
@@ -157,6 +178,7 @@
   <h1>Warp&#8209;O&#8209;Texture <span>web</span></h1>
   <button id="btnOpen">Open Archive&hellip;</button>
   <button id="btnTilePicker" disabled>Tile Picker&hellip;</button>
+  <button id="btnCredits">Credits</button>
   <span id="fileLabel">No archive loaded</span>
   <div class="spacer"></div>
   <span id="statusLine"></span>
@@ -223,6 +245,16 @@
       <button id="btnTilePickerClose">Close</button>
     </div>
     <div id="tilePickerGrid" tabindex="0"></div>
+  </div>
+</div>
+
+<div id="creditsOverlay">
+  <div id="creditsBox">
+    <div id="creditsHeader">
+      <h3>Credits</h3>
+      <button id="btnCreditsClose">Close</button>
+    </div>
+    <div id="creditsBody"></div>
   </div>
 </div>
 
