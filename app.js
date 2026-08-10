@@ -342,6 +342,10 @@ const el = {
   tilePickerGrid: $("tilePickerGrid"),
   tilePickerCount: $("tilePickerCount"),
   btnTilePickerClose: $("btnTilePickerClose"),
+  btnCredits: $("btnCredits"),
+  creditsOverlay: $("creditsOverlay"),
+  creditsBody: $("creditsBody"),
+  btnCreditsClose: $("btnCreditsClose"),
 };
 
 function setStatus(msg, kind) {
@@ -871,5 +875,44 @@ el.tilePickerOverlay.addEventListener("mousedown", (ev) => {
   if (ev.target === el.tilePickerOverlay) closeTilePicker();
 });
 
+/* ---- credits ---------------------------------------------------------- */
+
+const CREDITS_HTML =
+`Made by Earth, with thanks to:
+
+<span class="credit-name">-Marshmallow Ninja-</span>
+The other South Park 64 God. Tons of help from him teaming up to crack this engine open since day one.
+
+<span class="credit-name">-Hell Inspector-</span>
+For the support/encouragement, input, and overall attention/engagement since day one. Lot more helpful than one would think.
+
+<span class="credit-name">-Bambo-</span>
+For inspiration, clarifying previous discoveries, knowledge on textures/archives.
+
+<span class="credit-name">-ngh-</span>
+hey ngh!!! ngh please!!! help!!! ngh... sigh...
+(massive help in understanding certain tools or workflows, i would annoy him into rage when i myself was raging over making this, tough love when needed)
+
+<span class="credit-name">-Akela-</span>
+Support. Gotta love those that give you encouragement. Plus I see him nearly everywhere I go!`;
+
+function openCredits() {
+  el.creditsBody.innerHTML = CREDITS_HTML;
+  el.creditsOverlay.classList.add("show");
+  document.addEventListener("keydown", onCreditsKeydown, true);
+}
+function closeCredits() {
+  el.creditsOverlay.classList.remove("show");
+  document.removeEventListener("keydown", onCreditsKeydown, true);
+}
+function onCreditsKeydown(ev) {
+  if (ev.key === "Escape") { ev.preventDefault(); closeCredits(); }
+}
+
+el.btnCredits.addEventListener("click", openCredits);
+el.btnCreditsClose.addEventListener("click", closeCredits);
+el.creditsOverlay.addEventListener("mousedown", (ev) => {
+  if (ev.target === el.creditsOverlay) closeCredits();
+});
 
 })();
