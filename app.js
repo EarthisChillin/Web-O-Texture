@@ -316,6 +316,7 @@ const state = {
 
 const el = {
   btnOpen: $("btnOpen"),
+  btnTilePicker: $("btnTilePicker"),
   btnSave: $("btnSave"),
   fileLabel: $("fileLabel"),
   statusLine: $("statusLine"),
@@ -337,6 +338,10 @@ const el = {
   fileInputArchive: $("fileInputArchive"),
   fileInputImage: $("fileInputImage"),
   downloadLink: $("downloadLink"),
+  tilePickerOverlay: $("tilePickerOverlay"),
+  tilePickerGrid: $("tilePickerGrid"),
+  tilePickerCount: $("tilePickerCount"),
+  btnTilePickerClose: $("btnTilePickerClose"),
 };
 
 function setStatus(msg, kind) {
@@ -370,6 +375,8 @@ el.fileInputArchive.addEventListener("change", async () => {
     el.fileLabel.textContent = file.name;
     el.btnSave.disabled = false;
     el.btnSave.classList.remove("primary");
+    el.btnTilePicker.disabled = archive.entries.length === 0;
+    tilePickerThumbCache.clear();
     renderArchiveMeta();
     renderList();
     setStatus(`Loaded ${archive.entries.length} entries.`, "ok");
@@ -501,24 +508,29 @@ el.btnNextFrame.addEventListener("click", () => { state.currentFrame++; renderFr
 
 el.btnRotate.addEventListener("click", () => {
   const t = currentView(); t.rotationSteps = (t.rotationSteps + 1) % 4;
+  invalidateTileThumb(state.selectedEntry);
   renderInfo(); renderPreview();
 });
 el.btnFlipH.addEventListener("click", () => {
   const t = currentView(); t.flipH = !t.flipH;
+  invalidateTileThumb(state.selectedEntry);
   renderInfo(); renderPreview();
 });
 el.btnFlipV.addEventListener("click", () => {
   const t = currentView(); t.flipV = !t.flipV;
+  invalidateTileThumb(state.selectedEntry);
   renderInfo(); renderPreview();
 });
 el.btnResetView.addEventListener("click", () => {
   const e = currentEntry();
   state.views[state.selectedEntry] = defaultViewTransformForEntry(e.isUiCategory);
+  invalidateTileThumb(state.selectedEntry);
   renderInfo(); renderPreview();
 });
 el.chkBilinear.addEventListener("change", () => {
   state.bilinear = el.chkBilinear.checked;
   el.previewCanvas.classList.toggle("bilinear", state.bilinear);
+  tilePickerThumbCache.clear();
   renderPreview();
 });
 
@@ -646,6 +658,7 @@ el.fileInputImage.addEventListener("change", async () => {
 
     state.archive.replaceFrame(state.selectedEntry, state.currentFrame, inv.buf);
     markDirty();
+    invalidateTileThumb(state.selectedEntry);
     renderInfo(); renderPreview();
     const scaledNote = (bitmap.width !== disp.w || bitmap.height !== disp.h)
       ? ` (scaled from ${bitmap.width}\u00D7${bitmap.height} to ${disp.w}\u00D7${disp.h})` : "";
@@ -683,5 +696,180 @@ el.btnSave.addEventListener("click", () => {
 window.addEventListener("beforeunload", (ev) => {
   if (state.dirty) { ev.preventDefault(); ev.returnValue = ""; }
 });
+
+/* ===========================================================================
+   Tile Picker — BUILD-engine-style grid tile picker (port of TilePicker.cpp).
+   Shows every entry as a small thumbnail in a scrollable grid. Click a tile
+   (or highlight one with arrow keys and press Enter) to jump the main view
+   to that entry. Escape closes without changing the selection.
+=========================================================================== */
+
+const TILE_IMG = 64;    // thumbnail square size, matches TILE_IMG in TilePicker.cpp
+const TILE_CELL = 76;   // rendered CSS cell width (70px tile + 2*3px margin)
+
+const tilePickerThumbCache = new Map(); // entryIdx -> <canvas>
+let tilePickerObserver = null;
+let tilePickerHighlighted = -1;
+let tilePickerOpen = false;
+
+function invalidateTileThumb(idx) {
+  tilePickerThumbCache.delete(idx);
+}
+
+// Renders entry `idx`'s first frame into a TILE_IMG x TILE_IMG canvas,
+// fit inside the square (centered, no cropping) — same approach as
+// MakeThumbnail() in TilePicker.cpp.
+function renderTileThumbnail(idx) {
+  const canvas = document.createElement("canvas");
+  canvas.width = TILE_IMG;
+  canvas.height = TILE_IMG;
+  canvas.className = state.bilinear ? "bilinear" : "";
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#17171a";
+  ctx.fillRect(0, 0, TILE_IMG, TILE_IMG);
+
+  const e = state.archive.entries[idx];
+  if (e.width === 0 || e.height === 0) return canvas;
+
+  const view = state.views[idx] || { rotationSteps: 0, flipH: false, flipV: false };
+  const stored = state.archive.getFramePixels(idx, 0);
+  const disp = applyViewTransform(stored, e.width, e.height, view);
+
+  const src = document.createElement("canvas");
+  src.width = disp.w; src.height = disp.h;
+  src.getContext("2d").putImageData(pixels555ToImageData(disp.buf, disp.w, disp.h, e.isMonochrome), 0, 0);
+
+  const scale = Math.min(TILE_IMG / disp.w, TILE_IMG / disp.h);
+  const dw = disp.w * scale, dh = disp.h * scale;
+  const offX = (TILE_IMG - dw) / 2, offY = (TILE_IMG - dh) / 2;
+  ctx.imageSmoothingEnabled = state.bilinear;
+  ctx.drawImage(src, offX, offY, dw, dh);
+  return canvas;
+}
+
+function getTileThumbnail(idx) {
+  let canvas = tilePickerThumbCache.get(idx);
+  if (!canvas) {
+    canvas = renderTileThumbnail(idx);
+    tilePickerThumbCache.set(idx, canvas);
+  }
+  return canvas;
+}
+
+function buildTilePickerGrid() {
+  el.tilePickerGrid.innerHTML = "";
+  const n = state.archive.entries.length;
+  el.tilePickerCount.textContent = `${n} entries`;
+
+  if (tilePickerObserver) tilePickerObserver.disconnect();
+  tilePickerObserver = new IntersectionObserver((observed) => {
+    for (const rec of observed) {
+      if (!rec.isIntersecting) continue;
+      const tile = rec.target;
+      const idx = Number(tile.dataset.idx);
+      const holder = tile.querySelector(".thumb-holder");
+      if (holder && !holder.firstChild) holder.appendChild(getTileThumbnail(idx));
+      tilePickerObserver.unobserve(tile);
+    }
+  }, { root: el.tilePickerGrid, rootMargin: "200px 0px" });
+
+  for (let i = 0; i < n; i++) {
+    const tile = document.createElement("div");
+    tile.className = "tile" + (i === tilePickerHighlighted ? " highlighted" : "");
+    tile.dataset.idx = i;
+
+    const holder = document.createElement("div");
+    holder.className = "thumb-holder";
+    tile.appendChild(holder);
+
+    const label = document.createElement("div");
+    label.className = "tile-label";
+    label.textContent = "#" + i;
+    tile.appendChild(label);
+
+    tile.addEventListener("click", () => {
+      selectEntry(i);
+      closeTilePicker();
+    });
+
+    el.tilePickerGrid.appendChild(tile);
+    tilePickerObserver.observe(tile);
+  }
+}
+
+function tileColumnCount() {
+  return Math.max(1, Math.floor(el.tilePickerGrid.clientWidth / TILE_CELL));
+}
+
+function setTileHighlighted(idx) {
+  const n = state.archive.entries.length;
+  idx = Math.max(0, Math.min(n - 1, idx));
+  const prev = el.tilePickerGrid.querySelector(".tile.highlighted");
+  if (prev) prev.classList.remove("highlighted");
+  tilePickerHighlighted = idx;
+  const next = el.tilePickerGrid.querySelector(`.tile[data-idx="${idx}"]`);
+  if (next) {
+    next.classList.add("highlighted");
+    next.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function openTilePicker() {
+  if (!state.archive || state.archive.entries.length === 0) return;
+  tilePickerOpen = true;
+  tilePickerHighlighted = state.selectedEntry >= 0 ? state.selectedEntry : 0;
+  buildTilePickerGrid();
+  el.tilePickerOverlay.classList.add("show");
+  document.addEventListener("keydown", onTilePickerKeydown, true);
+  requestAnimationFrame(() => {
+    setTileHighlighted(tilePickerHighlighted);
+    el.tilePickerGrid.focus();
+  });
+}
+
+function closeTilePicker() {
+  tilePickerOpen = false;
+  el.tilePickerOverlay.classList.remove("show");
+  document.removeEventListener("keydown", onTilePickerKeydown, true);
+  if (tilePickerObserver) { tilePickerObserver.disconnect(); tilePickerObserver = null; }
+}
+
+function onTilePickerKeydown(ev) {
+  if (!tilePickerOpen) return;
+  const cols = tileColumnCount();
+  switch (ev.key) {
+    case "Escape":
+      ev.preventDefault();
+      closeTilePicker();
+      break;
+    case "Enter":
+      ev.preventDefault();
+      if (tilePickerHighlighted >= 0) { selectEntry(tilePickerHighlighted); closeTilePicker(); }
+      break;
+    case "ArrowUp":
+      ev.preventDefault();
+      setTileHighlighted(tilePickerHighlighted - cols);
+      break;
+    case "ArrowDown":
+      ev.preventDefault();
+      setTileHighlighted(tilePickerHighlighted + cols);
+      break;
+    case "ArrowLeft":
+      ev.preventDefault();
+      setTileHighlighted(tilePickerHighlighted - 1);
+      break;
+    case "ArrowRight":
+      ev.preventDefault();
+      setTileHighlighted(tilePickerHighlighted + 1);
+      break;
+  }
+}
+
+el.btnTilePicker.addEventListener("click", openTilePicker);
+el.btnTilePickerClose.addEventListener("click", closeTilePicker);
+el.tilePickerOverlay.addEventListener("mousedown", (ev) => {
+  if (ev.target === el.tilePickerOverlay) closeTilePicker();
+});
+
 
 })();
