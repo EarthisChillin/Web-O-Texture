@@ -885,7 +885,7 @@ The other South Park 64 God. Tons of help from him teaming up to crack this engi
 Check him out at <a class="credit-link" href="https://themarshmallowninja.itch.io/" target="_blank" rel="noopener noreferrer">https://themarshmallowninja.itch.io/</a>!
 
 <span class="credit-name">-Hell Inspector-</span>
-For the support/encouragement, input, and overall attention/engagement since day one. Lot more helpful than one would think.
+For the support/encouragement, input, texture/model knowledge and overall attention/engagement since day one. Lot more helpful than one would think.
 Check him out at <a class="credit-link" href="https://www.youtube.com/@TheHellInspector/videos" target="_blank" rel="noopener noreferrer">https://www.youtube.com/@TheHellInspector</a>!
 
 <span class="credit-name">-Bambo-</span>
