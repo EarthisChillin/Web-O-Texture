@@ -881,11 +881,11 @@ const CREDITS_HTML =
 `Made by Earth, with thanks to:
 
 <span class="credit-name">-Marshmallow Ninja-</span>
-The other South Park 64 God. Tons of help from him teaming up to crack this engine open since day one.
+The other South Park 64 God. Tons of help from him teaming up to crack this engine open since day one. Helped in basically every area.
 Check him out at <a class="credit-link" href="https://themarshmallowninja.itch.io/" target="_blank" rel="noopener noreferrer">https://themarshmallowninja.itch.io/</a>!
 
 <span class="credit-name">-Hell Inspector-</span>
-For the support/encouragement, input, texture/model knowledge and overall attention/engagement since day one. Lot more helpful than one would think.
+For the support, input, texture/model knowledge and overall attention/engagement since day one. Lot more helpful than one would think.
 Check him out at <a class="credit-link" href="https://www.youtube.com/@TheHellInspector/videos" target="_blank" rel="noopener noreferrer">https://www.youtube.com/@TheHellInspector</a>!
 
 <span class="credit-name">-Bambo-</span>
