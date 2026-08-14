@@ -638,8 +638,9 @@ el.fileInputImage.addEventListener("change", async () => {
     const view = currentView();
     const disp = currentDisplayDims(e, view);
 
-   // Resize the imported image to the selected entry's resolution.
-   // It must fit exactly as the original did.
+    // Auto-fit the imported image to the entry's current resolution (in
+    // display space) — stretches/scales as needed, so any source image size
+    // works and the frame is always replaced in place (no layout rewrite).
     const cvs = document.createElement("canvas");
     cvs.width = disp.w; cvs.height = disp.h;
     const cctx = cvs.getContext("2d");
@@ -701,8 +702,8 @@ window.addEventListener("beforeunload", (ev) => {
 });
 
 /* ===========================================================================
-   Tile Picker.
-   Shows every texture as a small thumbnail in a scrollable grid. Click a tile
+   Tile Picker — BUILD-engine-style grid tile picker (port of TilePicker.cpp).
+   Shows every entry as a small thumbnail in a scrollable grid. Click a tile
    (or highlight one with arrow keys and press Enter) to jump the main view
    to that entry. Escape closes without changing the selection.
 =========================================================================== */
