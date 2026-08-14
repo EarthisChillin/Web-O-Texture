@@ -893,7 +893,10 @@ For inspiration, clarifying previous discoveries, knowledge on textures/archives
 
 <span class="credit-name">-ngh-</span>
 hey ngh!!! ngh please!!! help!!! ngh... sigh...
-(massive help in understanding certain tools or workflows, i would annoy him into rage when i myself was raging over making this, tough love when needed);
+(massive help in understanding certain tools or workflows, i would annoy him into rage when i myself was raging over making this, tough love when needed)
+
+<span class="credit-name">-Akela-</span>
+Support. Gotta love those that give you encouragement. Plus I see him nearly everywhere I go!`;
 
 function openCredits() {
   el.creditsBody.innerHTML = CREDITS_HTML;
